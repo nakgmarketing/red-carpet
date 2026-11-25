@@ -79,7 +79,7 @@ body.en [data-lang="en"]{display:unset}
 .rc-title{
   font-family:'Arizonia',cursive;font-size:clamp(36px,10vw,72px);
   color:var(--white);text-shadow:0 4px 30px rgba(139,0,0,0.6);
-  line-height:1.1;margin-bottom:8px;white-space:nowrap;
+  line-height:1.1;margin-bottom:8px;
 }
 .invite-greeting{
   font-family:'Century Gothic','Nunito',sans-serif;font-size:clamp(24px,6vw,34px);
@@ -115,7 +115,7 @@ body.en [data-lang="en"]{display:unset}
   backdrop-filter:blur(10px);display:flex;flex-direction:column;justify-content:center;
 }
 .card-heading{font-family:'Century Gothic','Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:6px;line-height:1.4}
-.card-rc{font-family:'Arizonia',cursive;font-size:clamp(22px,6vw,36px);color:var(--gold-light);margin-bottom:14px;line-height:1.1;white-space:nowrap}
+.card-rc{font-family:'Arizonia',cursive;font-size:clamp(22px,6vw,36px);color:var(--gold-light);margin-bottom:14px;line-height:1.1}
 .card-date{font-family:'Century Gothic','Nunito',sans-serif;font-size:12px;color:var(--white);margin-bottom:16px;line-height:1.7}
 .card-dress{font-family:'Century Gothic','Nunito',sans-serif;font-size:11px;color:rgba(255,255,255,0.85);line-height:1.6;border-top:1px solid rgba(212,175,55,0.2);padding-top:14px}
 .card-dress strong{color:var(--gold-light)}
@@ -212,16 +212,28 @@ body.en [data-lang="en"]{display:unset}
 }
 
 @media(min-width:480px){
-  html{background:#000}
-  .video-container{left:50%;transform:translateX(-50%);max-width:430px}
-  .video-overlay{left:50%;transform:translateX(-50%);max-width:430px}
-  .top-bar{left:50%;transform:translateX(-50%);max-width:430px;right:auto;width:100%}
-  .music-float{max-width:430px}
-  .scroll-content{max-width:430px;margin:0 auto}
+  html{background:#111}
+  body{display:flex;justify-content:center;align-items:flex-start;min-height:100vh;background:#111}
+  .phone-frame{
+    position:relative;width:390px;max-width:390px;min-height:100vh;
+    box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 0 2px rgba(255,255,255,0.08);
+    overflow-x:hidden;
+  }
+  .video-container{left:50%;transform:translateX(-50%);max-width:390px}
+  .video-overlay{left:50%;transform:translateX(-50%);max-width:390px}
+  .top-bar{left:50%;transform:translateX(-50%);max-width:390px;right:auto;width:100%}
+  .music-float{max-width:390px}
+  .scroll-content{max-width:390px;margin:0 auto}
+  .rc-title{font-size:48px}
+  .invite-greeting{font-size:28px}
+  .invite-text{font-size:20px;max-width:340px}
+  .scene{padding-left:28px;padding-right:28px}
+  .card-rc{font-size:30px}
 }
 </style>
 </head>
 <body>
+<div class="phone-frame">
 
 <audio id="bg-music" loop preload="auto"><source src="https://raw.githubusercontent.com/nakgmarketing/red-carpet/main/silverman-sound-studios-christmas-spirit.mp3" type="audio/mpeg"></audio>
 
@@ -487,14 +499,20 @@ window.addEventListener('scroll',checkScroll);checkScroll();
 var vid=document.getElementById('bg-video');
 var loader=document.getElementById('video-loader');
 
+var lastSeek=0;
 function syncVideo(){
-  if(!vid.duration||vid.seeking)return;
+  if(!vid.duration)return;
+  var now=performance.now();
+  if(vid.seeking&&now-lastSeek<300)return;
   var sc=document.querySelector('.scroll-content');
   var maxScroll=sc.scrollHeight-window.innerHeight;
   if(maxScroll<=0)return;
   var p=Math.min(Math.max(window.scrollY/maxScroll,0),1);
   var t=p*vid.duration;
-  if(Math.abs(vid.currentTime-t)>0.15){vid.currentTime=t}
+  if(Math.abs(vid.currentTime-t)>0.3){
+    lastSeek=now;
+    if(vid.fastSeek){vid.fastSeek(t)}else{vid.currentTime=t}
+  }
 }
 
 vid.addEventListener('canplaythrough',function(){
@@ -562,5 +580,6 @@ function submitRSVP(){
   }).catch(function(){alert('+996 553 808 778');btn.disabled=false});
 }
 </script>
+</div>
 </body>
 </html>
