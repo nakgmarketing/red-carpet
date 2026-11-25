@@ -494,26 +494,49 @@ function checkScroll(){
   scenes.forEach(function(s){if(s.getBoundingClientRect().top<window.innerHeight*0.75)s.classList.add('visible')});
   hint.style.opacity=window.scrollY>100?'0':'1';
 }
-window.addEventListener('scroll',checkScroll);checkScroll();
+window.addEventListener('scroll',checkScroll,{passive:true});checkScroll();
 
 var vid=document.getElementById('bg-video');
 var loader=document.getElementById('video-loader');
 
 var lastSeek=0;
+var seekQueue=null;
+var isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+var SEEK_COOLDOWN=isMobile?500:200;
+var SEEK_THRESHOLD=isMobile?0.5:0.3;
+var scrollContent=null;
+var maxScroll=0;
+
+function recalcMax(){
+  if(!scrollContent)scrollContent=document.querySelector('.scroll-content');
+  maxScroll=scrollContent.scrollHeight-window.innerHeight;
+}
+
+function doSeek(t){
+  lastSeek=performance.now();
+  if(vid.fastSeek){vid.fastSeek(t)}else{vid.currentTime=t}
+}
+
 function syncVideo(){
-  if(!vid.duration)return;
+  if(!vid.duration||maxScroll<=0)return;
   var now=performance.now();
-  if(vid.seeking&&now-lastSeek<300)return;
-  var sc=document.querySelector('.scroll-content');
-  var maxScroll=sc.scrollHeight-window.innerHeight;
-  if(maxScroll<=0)return;
   var p=Math.min(Math.max(window.scrollY/maxScroll,0),1);
   var t=p*vid.duration;
-  if(Math.abs(vid.currentTime-t)>0.3){
-    lastSeek=now;
-    if(vid.fastSeek){vid.fastSeek(t)}else{vid.currentTime=t}
+  if(Math.abs(vid.currentTime-t)<SEEK_THRESHOLD)return;
+  if(vid.seeking||now-lastSeek<SEEK_COOLDOWN){
+    seekQueue=t;
+    return;
   }
+  seekQueue=null;
+  doSeek(t);
 }
+
+/* flush queued seek when video finishes previous one */
+vid.addEventListener('seeked',function(){
+  if(seekQueue!==null&&performance.now()-lastSeek>=SEEK_COOLDOWN){
+    var t=seekQueue;seekQueue=null;doSeek(t);
+  }
+});
 
 vid.addEventListener('canplaythrough',function(){
   vid.classList.add('loaded');
@@ -521,6 +544,7 @@ vid.addEventListener('canplaythrough',function(){
   var pg=document.getElementById('video-progress');
   if(pg)pg.style.opacity='0';
   vid.pause();
+  recalcMax();
   syncVideo();
 });
 vid.addEventListener('progress',function(){
@@ -545,13 +569,15 @@ document.addEventListener('click',function iosKick(){
   }
 },{once:true});
 
+recalcMax();
+window.addEventListener('resize',recalcMax);
 var ticking=false;
 window.addEventListener('scroll',function(){
   if(!ticking){
     requestAnimationFrame(function(){syncVideo();ticking=false});
     ticking=true;
   }
-});
+},{passive:true});
 
 var answer='';
 function selectOpt(el,v){
