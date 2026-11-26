@@ -50,14 +50,14 @@ body.en [data-lang="en"]{display:unset}
 .lang-btn.active{background:rgba(255,255,255,0.9);color:var(--red-dark);border-color:white}
 .lang-btn:hover:not(.active){background:rgba(255,255,255,0.2)}
 
-.video-container{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:0;overflow:hidden;background:linear-gradient(135deg,#5C0A0A 0%,#8B0000 40%,#2a0505 100%)}
+.video-container{position:fixed;top:0;left:0;width:100%;height:100vh;z-index:0;overflow:hidden;background:linear-gradient(135deg,#5C0A0A 0%,#8B0000 40%,#2a0505 100%);will-change:transform;contain:layout style paint}
 .video-container video{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.8s ease}
 .video-container video.loaded{opacity:1}
 .video-overlay{position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.3);z-index:1;pointer-events:none}
 .video-loader{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:50;color:rgba(255,255,255,0.5);font-size:12px;letter-spacing:2px;font-family:'Century Gothic','Nunito',sans-serif;animation:pulse 1.5s infinite;transition:opacity 0.5s}
 @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
 
-.scroll-content{position:relative;z-index:2}
+.scroll-content{position:relative;z-index:2;will-change:transform}
 
 .scene{
   min-height:auto;display:flex;flex-direction:column;
@@ -516,54 +516,73 @@ function syncVideoSimple(){
   if(t>=0) vid.currentTime=t;
 }
 
-/* === Android / Desktop: throttle + seek queue === */
+/* === Desktop: throttle + seek queue === */
 var lastSeekTime=0;
-var seekCooldown=isAndroid?200:80;
+var seekCooldown=80;
 var pendingTarget=null;
 var isSeeking=false;
-var seekThreshold=isAndroid?0.3:0.08;
+var seekThreshold=0.08;
 
 function syncVideoThrottled(){
   if(!videoReady||!vid.duration)return;
   var t=getVideoTarget();
   if(t<0)return;
   var now=Date.now();
-  if(now-lastSeekTime<seekCooldown){
-    pendingTarget=t;
-    return;
-  }
+  if(now-lastSeekTime<seekCooldown){pendingTarget=t;return}
   if(Math.abs(vid.currentTime-t)<seekThreshold)return;
-  if(isSeeking){
-    pendingTarget=t;
-    return;
-  }
-  isSeeking=true;
-  lastSeekTime=now;
+  if(isSeeking){pendingTarget=t;return}
+  isSeeking=true;lastSeekTime=now;
   vid.currentTime=t;
 }
 
 vid.addEventListener('seeked',function(){
   isSeeking=false;
   if(pendingTarget!==null){
-    var t=pendingTarget;
-    pendingTarget=null;
+    var t=pendingTarget;pendingTarget=null;
     if(Math.abs(vid.currentTime-t)>=seekThreshold){
-      isSeeking=true;
-      lastSeekTime=Date.now();
+      isSeeking=true;lastSeekTime=Date.now();
       vid.currentTime=t;
     }
   }
 });
 
+/* === Android: отдельный rAF-loop, полностью отвязан от scroll === */
+var androidTarget=0;
+var androidLastSeek=0;
+var androidSeeking=false;
+
+function androidLoop(){
+  if(videoReady&&vid.duration){
+    var t=getVideoTarget();
+    if(t>=0) androidTarget=t;
+    var now=Date.now();
+    if(!androidSeeking&&now-androidLastSeek>250&&Math.abs(vid.currentTime-androidTarget)>0.4){
+      androidSeeking=true;
+      androidLastSeek=now;
+      vid.currentTime=androidTarget;
+    }
+  }
+  requestAnimationFrame(androidLoop);
+}
+
+if(isAndroid){
+  vid.addEventListener('seeked',function(){androidSeeking=false});
+}
+
 /* Выбираем стратегию по устройству */
-var syncVideo=isIOS?syncVideoSimple:syncVideoThrottled;
+function syncVideo(){
+  if(isIOS) syncVideoSimple();
+  else if(!isAndroid) syncVideoThrottled();
+  /* Android: не делаем ничего — rAF-loop сам управляет */
+}
 
 vid.addEventListener('canplaythrough',function(){
   videoReady=true;
   vid.classList.add('loaded');
   if(loader)loader.style.display='none';
   vid.pause();
-  syncVideo();
+  if(isAndroid) androidLoop();
+  else syncVideo();
 });
 
 /* iOS: нужно "пнуть" видео первым касанием */
@@ -580,13 +599,16 @@ document.addEventListener('click',function iosKick(){
   }
 },{once:true});
 
-var ticking=false;
-window.addEventListener('scroll',function(){
-  if(!ticking){
-    requestAnimationFrame(function(){syncVideo();ticking=false});
-    ticking=true;
-  }
-},{passive:true});
+/* Scroll listener — только для iPhone и Desktop, не для Android */
+if(!isAndroid){
+  var ticking=false;
+  window.addEventListener('scroll',function(){
+    if(!ticking){
+      requestAnimationFrame(function(){syncVideo();ticking=false});
+      ticking=true;
+    }
+  },{passive:true});
+}
 
 var answer='';
 function selectOpt(el,v){
