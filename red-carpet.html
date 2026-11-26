@@ -497,7 +497,9 @@ var vid=document.getElementById('bg-video');
 var loader=document.getElementById('video-loader');
 
 var videoReady=false;
-var isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
+var ua=navigator.userAgent;
+var isIOS=/iPhone|iPad|iPod/.test(ua);
+var isAndroid=/Android/i.test(ua);
 
 /* === Общая функция расчёта позиции === */
 function getVideoTarget(){
@@ -516,10 +518,10 @@ function syncVideoSimple(){
 
 /* === Android / Desktop: throttle + seek queue === */
 var lastSeekTime=0;
-var seekCooldown=80;
+var seekCooldown=isAndroid?200:80;
 var pendingTarget=null;
 var isSeeking=false;
-var seekThreshold=0.08;
+var seekThreshold=isAndroid?0.3:0.08;
 
 function syncVideoThrottled(){
   if(!videoReady||!vid.duration)return;
