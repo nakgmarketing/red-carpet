@@ -55,8 +55,6 @@ body.en [data-lang="en"]{display:unset}
 .video-container video.loaded{opacity:1}
 .video-overlay{position:fixed;top:0;left:0;width:100%;height:100vh;background:rgba(0,0,0,0.3);z-index:1;pointer-events:none}
 .video-loader{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:50;color:rgba(255,255,255,0.5);font-size:12px;letter-spacing:2px;font-family:'Century Gothic','Nunito',sans-serif;animation:pulse 1.5s infinite;transition:opacity 0.5s}
-.video-progress{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);width:60px;height:2px;background:rgba(255,255,255,0.15);border-radius:1px;z-index:50;transition:opacity 0.5s}
-.video-progress-bar{height:100%;background:rgba(255,255,255,0.5);border-radius:1px;width:0%;transition:width 0.3s}
 @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}
 
 .scroll-content{position:relative;z-index:2}
@@ -110,9 +108,9 @@ body.en [data-lang="en"]{display:unset}
 /* SCENE 4: Card */
 .scene-4{min-height:56vh}
 .card-overlay{
-  background:rgba(92,10,10,0.85);border:1px solid rgba(212,175,55,0.3);
+  background:rgba(92,10,10,0.92);border:1px solid rgba(212,175,55,0.3);
   border-radius:8px;padding:28px 20px;max-width:220px;width:55vw;aspect-ratio:9/16;
-  backdrop-filter:blur(10px);display:flex;flex-direction:column;justify-content:center;
+  display:flex;flex-direction:column;justify-content:center;
 }
 .card-heading{font-family:'Century Gothic','Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:6px;line-height:1.4}
 .card-rc{font-family:'Arizonia',cursive;font-size:clamp(22px,6vw,36px);color:var(--gold-light);margin-bottom:14px;line-height:1.1}
@@ -123,8 +121,8 @@ body.en [data-lang="en"]{display:unset}
 /* SCENE 5: Location */
 .scene-5{min-height:57vh}
 .location-block{
-  background:rgba(0,0,0,0.6);border:1px solid rgba(212,175,55,0.2);
-  border-radius:8px;padding:32px 24px;max-width:340px;backdrop-filter:blur(8px);text-align:center;
+  background:rgba(0,0,0,0.75);border:1px solid rgba(212,175,55,0.2);
+  border-radius:8px;padding:32px 24px;max-width:340px;text-align:center;
 }
 .location-label{font-family:'Century Gothic','Nunito',sans-serif;font-size:14px;color:var(--gold-light);letter-spacing:3px;text-transform:uppercase;margin-bottom:16px}
 .location-name{font-family:'Century Gothic','Nunito',sans-serif;font-size:16px;color:var(--white);line-height:1.7;margin-bottom:20px}
@@ -138,8 +136,8 @@ body.en [data-lang="en"]{display:unset}
 /* SCENE 6: Form */
 .scene-6{min-height:auto;padding:40px 24px 20px}
 .form-block{
-  background:rgba(92,10,10,0.8);border:1px solid rgba(212,175,55,0.2);
-  border-radius:8px;padding:36px 24px;max-width:340px;width:100%;backdrop-filter:blur(10px);
+  background:rgba(92,10,10,0.9);border:1px solid rgba(212,175,55,0.2);
+  border-radius:8px;padding:36px 24px;max-width:340px;width:100%;
 }
 .form-title{font-family:'Century Gothic','Nunito',sans-serif;font-size:22px;font-weight:700;color:var(--white);text-align:center;margin-bottom:24px}
 .form-row{margin-bottom:16px}
@@ -170,7 +168,7 @@ body.en [data-lang="en"]{display:unset}
 .form-success{
   display:none;text-align:center;padding:24px;
   background:rgba(92,10,10,0.8);border:1px solid rgba(212,175,55,0.3);
-  border-radius:8px;max-width:340px;backdrop-filter:blur(10px);
+  border-radius:8px;max-width:340px;
 }
 .form-success h3{font-family:'Century Gothic','Nunito',sans-serif;font-size:22px;color:var(--gold-light);margin-bottom:8px}
 .form-success p{font-family:'Century Gothic','Nunito',sans-serif;font-size:14px;color:rgba(255,255,255,0.7)}
@@ -178,8 +176,8 @@ body.en [data-lang="en"]{display:unset}
 /* SCENE 7: Contact */
 .scene-7{min-height:auto;padding:20px 24px 40px}
 .contact-block{
-  background:rgba(0,0,0,0.5);border:1px solid rgba(212,175,55,0.15);
-  border-radius:8px;padding:28px 24px;max-width:340px;text-align:center;backdrop-filter:blur(8px);
+  background:rgba(0,0,0,0.7);border:1px solid rgba(212,175,55,0.15);
+  border-radius:8px;padding:28px 24px;max-width:340px;text-align:center;
 }
 .contact-q{font-family:'Century Gothic','Nunito',sans-serif;font-size:16px;color:var(--gold-light);margin-bottom:16px}
 .wa-btn{
@@ -255,7 +253,6 @@ body.en [data-lang="en"]{display:unset}
 </div>
 <div class="video-overlay"></div>
 <div class="video-loader" id="video-loader">загрузка видео...</div>
-<div class="video-progress" id="video-progress"><div class="video-progress-bar" id="video-progress-bar"></div></div>
 <div class="music-float" id="music-float">
   <button class="music-btn" id="music-btn" onclick="toggleMusic()">&#9835;</button>
   <span class="music-float-label">нажми</span>
@@ -500,31 +497,71 @@ var vid=document.getElementById('bg-video');
 var loader=document.getElementById('video-loader');
 
 var videoReady=false;
+var isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent);
 
-function syncVideo(){
-  if(!videoReady||!vid.duration)return;
+/* === Общая функция расчёта позиции === */
+function getVideoTarget(){
   var sc=document.querySelector('.scroll-content');
   var maxScroll=sc.scrollHeight-window.innerHeight;
-  if(maxScroll<=0)return;
-  var p=Math.min(Math.max(window.scrollY/maxScroll,0),1);
-  vid.currentTime=p*vid.duration;
+  if(maxScroll<=0)return -1;
+  return Math.min(Math.max(window.scrollY/maxScroll,0),1)*vid.duration;
 }
+
+/* === iPhone: простой sync (проверен, работает идеально) === */
+function syncVideoSimple(){
+  if(!videoReady||!vid.duration)return;
+  var t=getVideoTarget();
+  if(t>=0) vid.currentTime=t;
+}
+
+/* === Android / Desktop: throttle + seek queue === */
+var lastSeekTime=0;
+var seekCooldown=80;
+var pendingTarget=null;
+var isSeeking=false;
+var seekThreshold=0.08;
+
+function syncVideoThrottled(){
+  if(!videoReady||!vid.duration)return;
+  var t=getVideoTarget();
+  if(t<0)return;
+  var now=Date.now();
+  if(now-lastSeekTime<seekCooldown){
+    pendingTarget=t;
+    return;
+  }
+  if(Math.abs(vid.currentTime-t)<seekThreshold)return;
+  if(isSeeking){
+    pendingTarget=t;
+    return;
+  }
+  isSeeking=true;
+  lastSeekTime=now;
+  vid.currentTime=t;
+}
+
+vid.addEventListener('seeked',function(){
+  isSeeking=false;
+  if(pendingTarget!==null){
+    var t=pendingTarget;
+    pendingTarget=null;
+    if(Math.abs(vid.currentTime-t)>=seekThreshold){
+      isSeeking=true;
+      lastSeekTime=Date.now();
+      vid.currentTime=t;
+    }
+  }
+});
+
+/* Выбираем стратегию по устройству */
+var syncVideo=isIOS?syncVideoSimple:syncVideoThrottled;
 
 vid.addEventListener('canplaythrough',function(){
   videoReady=true;
   vid.classList.add('loaded');
-  if(loader){loader.style.opacity='0';setTimeout(function(){loader.style.display='none'},500)}
-  var pg=document.getElementById('video-progress');
-  if(pg)pg.style.opacity='0';
+  if(loader)loader.style.display='none';
   vid.pause();
   syncVideo();
-});
-vid.addEventListener('progress',function(){
-  if(vid.buffered.length>0){
-    var pct=vid.buffered.end(vid.buffered.length-1)/vid.duration*100;
-    var bar=document.getElementById('video-progress-bar');
-    if(bar)bar.style.width=pct+'%';
-  }
 });
 
 /* iOS: нужно "пнуть" видео первым касанием */
